@@ -28,8 +28,13 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 		return FALSE;
 	// TODO: 在此处通过修改
 	//  CREATESTRUCT cs 来修改窗口类或样式
-	cs.style = WS_OVERLAPPED | WS_CAPTION | FWS_ADDTOTITLE
-		| WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU;
+	// Finished
+	cs.style = WS_OVERLAPPED | WS_CAPTION | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU;//修改cs类型
+	cs.cx = 800;
+	cs.cy = 600;//设置窗口大小
+	cs.y = 222;
+	cs.x = 111;//设置初始位置
+	cs.lpszName = "U202111035_数字图像处理作业";
 	return TRUE;
 }
 
