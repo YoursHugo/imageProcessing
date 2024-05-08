@@ -224,6 +224,16 @@ void CimageProcessingView::OnImageprocessGausssmooth()
 //Median filtering
 void CimageProcessingView::OnImageprocessMedianfilter()
 {
+	if (pFileBuf == NULL) return;
+
+	int kernelSize = 7; // Set the size of the median filter kernel (e.g., 3x3, 5x5)
+
+	char* pNewImage = MedianFilter(pFileBuf,kernelSize);
+
+	delete[] pFileBuf;
+	pFileBuf = pNewImage;
+	Invalidate();
+	UpdateWindow();
 }
 
 //Bilateral filtering

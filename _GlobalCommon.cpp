@@ -1,7 +1,8 @@
 //GlobalCommon.cpp
 #define _CRT_SECURE_NO_WARNINGS
 #include "_GlobalCommon.h"
-
+#include <vector>
+#include <algorithm>
 /**
 	 功能: 从图像文件中建造DIB类
 	 参数: strBmpFile --- 需要打开的BMP文件名
@@ -486,5 +487,54 @@ char* GaussianSmooth(char* pBmpFileBuf, int kernelSize, double sigma)
 	}
 
 	delete[] kernel;
+	return pNewBmpFileBuf;
+}
+
+char* MedianFilter(char* pBmpFileBuf, int kernelSize)
+{
+	BITMAPFILEHEADER* pFileHeader = (BITMAPFILEHEADER*)pBmpFileBuf;
+	BITMAPINFOHEADER* pDIBInfo = (BITMAPINFOHEADER*)(pBmpFileBuf + sizeof(BITMAPFILEHEADER));
+	int orgWidth = pDIBInfo->biWidth;
+	int orgHeight = pDIBInfo->biHeight;
+	int colorBits = pDIBInfo->biBitCount;
+
+	long bytesPerRow = 4 * ((orgWidth * colorBits + 31) / 32);
+	long newBmpFileSize = pFileHeader->bfOffBits + bytesPerRow * orgHeight;
+	char* pNewBmpFileBuf = new char[newBmpFileSize];
+	memcpy(pNewBmpFileBuf, pBmpFileBuf, pFileHeader->bfOffBits);
+	BITMAPFILEHEADER* pNewFileHeader = (BITMAPFILEHEADER*)pNewBmpFileBuf;
+	BITMAPINFOHEADER* pNewDIBInfo = (BITMAPINFOHEADER*)(pNewBmpFileBuf + sizeof(BITMAPFILEHEADER));
+	pNewFileHeader->bfSize = newBmpFileSize;
+	pNewDIBInfo->biWidth = orgWidth;
+	pNewDIBInfo->biHeight = orgHeight;
+	pNewDIBInfo->biSizeImage = bytesPerRow * orgHeight;
+
+	int kernelRadius = kernelSize / 2;
+	for (int y = 0; y < orgHeight; y++)
+	{
+		for (int x = 0; x < orgWidth; x++)
+		{
+			std::vector<RGBQUAD> neighbors;
+			for (int ky = -kernelRadius; ky <= kernelRadius; ky++)
+			{
+				for (int kx = -kernelRadius; kx <= kernelRadius; kx++)
+				{
+					int srcX = max(0, min(orgWidth - 1, x + kx));
+					int srcY = max(0, min(orgHeight - 1, y + ky));
+					RGBQUAD rgb;
+					GetPixel(pBmpFileBuf, srcX, srcY, &rgb);
+					neighbors.push_back(rgb);
+				}
+			}
+
+			sort(neighbors.begin(), neighbors.end(), [](const RGBQUAD& a, const RGBQUAD& b) {
+				return a.rgbBlue < b.rgbBlue || (a.rgbBlue == b.rgbBlue && a.rgbGreen < b.rgbGreen) || (a.rgbBlue == b.rgbBlue && a.rgbGreen == b.rgbGreen && a.rgbRed < b.rgbRed);
+				});
+
+			int medianIndex = neighbors.size() / 2;
+			RGBQUAD medianRGB = neighbors[medianIndex];
+			SetPixel(pNewBmpFileBuf, x, y, medianRGB);
+		}
+	}
 	return pNewBmpFileBuf;
 }
