@@ -6,6 +6,7 @@
 #include "imageProcessingDoc.h"
 #include "imageProcessingView.h"
 #include "_GlobalCommon.h"
+#include <afxdialogex.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -84,7 +85,7 @@ void CimageProcessingView::OnDraw(CDC *pDC)
 	// TODO: 在此处为本机数据添加绘制代码
 	if( pFileBuf != NULL )
 	{
-		DisplayImage(pDC,pFileBuf,10,10,0,0,0);
+		DisplayImage(pDC,pFileBuf,0,0,0,0,0);
 	}
 }
 
@@ -131,14 +132,22 @@ void CimageProcessingView::OnImageprocessDisplaypalette()
 	if(pFileBuf == NULL) return;
 	/**/
 	int num = 0;
-	RGBQUAD *pallete = GetDIBPaletteData(pFileBuf,&num);
-	if( pallete == NULL )
+	RGBQUAD *palette = GetDIBPaletteData(pFileBuf,&num);
+	if( palette == NULL )
 	{
-		AfxMessageBox("No palette");
+		AfxMessageBox("未找到palette,\npalette到哪里去了？");
 	}
 	else
 	{
 		//Here are your code
+		CString paletteInfo;
+		for (int i = 0; i < num; ++i)
+		{
+			CString colorInfo;
+			colorInfo.Format("Index %d: RGB(%d, %d, %d)\n", i, palette[i].rgbRed, palette[i].rgbGreen, palette[i].rgbBlue);
+			paletteInfo += colorInfo;
+		}
+		AfxMessageBox(paletteInfo);
 	}
 }
 
@@ -148,6 +157,8 @@ void CimageProcessingView::OnImageprocessGetpixelvalue()
 	if(pFileBuf == NULL) return;
 	/**/
 	//Add your code to choose the coordinate (x,y)
+	//CDialog dlg;
+	//dlg.DoModal();
 	int x = 100;
 	int y = 100;
 	RGBQUAD rgb;
@@ -197,6 +208,17 @@ void CimageProcessingView::OnImageprocessInerpolation()
 //Gaussian smoothing
 void CimageProcessingView::OnImageprocessGausssmooth()
 {
+	if (pFileBuf == NULL) return;
+
+	int kernelSize = 5; // Set the size of the Gaussian kernel (e.g., 3x3, 5x5)
+	double sigma = 1.0; // Set the standard deviation for the Gaussian kernel
+
+	char* pNewImage = GaussianSmooth(pFileBuf, kernelSize, sigma);
+
+	delete[] pFileBuf;
+	pFileBuf = pNewImage;
+	Invalidate();
+	UpdateWindow();
 }
 
 //Median filtering

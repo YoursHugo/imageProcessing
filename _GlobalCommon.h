@@ -23,3 +23,4 @@ void    SetPixel(char *pFileBuffer,int x,int y,RGBQUAD rgb);
 BOOL    SaveDIB(char *pFileBuffer,CString strBmpFile);
 
 char    *ImageInterpolation(char *pBmpFileBuf,int newWidth,int newHeight,int nMethod=0);
+char    *GaussianSmooth(char* pSrcBuf, int kernelSize=5, double sigma=1.0);

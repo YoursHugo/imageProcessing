@@ -401,3 +401,90 @@ char *ImageInterpolation(char *pBmpFileBuf,int newWidth,int newHeight,int nMetho
 	/**/
 	return( pNewBmpFileBuf );
 }
+
+double* CreateGaussianKernel(int kernelSize, double sigma)
+{
+	int kernelRadius = kernelSize / 2;
+	double* kernel = new double[kernelSize * kernelSize];
+	double sum = 0.0;
+
+	for (int y = -kernelRadius; y <= kernelRadius; y++)
+	{
+		for (int x = -kernelRadius; x <= kernelRadius; x++)
+		{
+			double value = exp(-(x * x + y * y) / (2 * sigma * sigma));
+			kernel[(y + kernelRadius) * kernelSize + (x + kernelRadius)] = value;
+			sum += value;
+		}
+	}
+
+	// Normalize the kernel
+	for (int i = 0; i < kernelSize * kernelSize; i++)
+	{
+		kernel[i] /= sum;
+	}
+
+	return kernel;
+}
+
+char* GaussianSmooth(char* pBmpFileBuf, int kernelSize, double sigma)
+{
+	BITMAPFILEHEADER* pFileHeader = (BITMAPFILEHEADER*)pBmpFileBuf;
+	BITMAPINFOHEADER* pDIBInfo = (BITMAPINFOHEADER*)(pBmpFileBuf + sizeof(BITMAPFILEHEADER));
+	int orgWidth = pDIBInfo->biWidth;
+	int orgHeight = pDIBInfo->biHeight;
+	int colorBits = pDIBInfo->biBitCount;
+
+	long bytesPerRow = 4 * ((orgWidth * colorBits + 31) / 32);
+	long newBmpFileSize = pFileHeader->bfOffBits + bytesPerRow * orgHeight;
+	char* pNewBmpFileBuf = new char[newBmpFileSize];
+	memcpy(pNewBmpFileBuf, pBmpFileBuf, pFileHeader->bfOffBits);
+	BITMAPFILEHEADER* pNewFileHeader = (BITMAPFILEHEADER*)pNewBmpFileBuf;
+	BITMAPINFOHEADER* pNewDIBInfo = (BITMAPINFOHEADER*)(pNewBmpFileBuf + sizeof(BITMAPFILEHEADER));
+	pNewFileHeader->bfSize = newBmpFileSize;
+	pNewDIBInfo->biWidth = orgWidth;
+	pNewDIBInfo->biHeight = orgHeight;
+	pNewDIBInfo->biSizeImage = bytesPerRow * orgHeight;
+
+	int kernelRadius = kernelSize / 2;
+	double* kernel = CreateGaussianKernel(kernelSize, sigma);
+
+	for (int y = 0; y < orgHeight; y++)
+	{
+		for (int x = 0; x < orgWidth; x++)
+		{
+			RGBQUAD rgb = { 0, 0, 0, 0 };
+			double sum = 0.0;
+			double weightSum = 0.0;
+
+			for (int ky = -kernelRadius; ky <= kernelRadius; ky++)
+			{
+				for (int kx = -kernelRadius; kx <= kernelRadius; kx++)
+				{
+					int srcX = max(0, min(orgWidth - 1, x + kx));
+					int srcY = max(0, min(orgHeight - 1, y + ky));
+					int kernelIndex = (ky + kernelRadius) * kernelSize + (kx + kernelRadius);
+					double weight = kernel[kernelIndex];
+
+					RGBQUAD srcRGB;
+					GetPixel(pBmpFileBuf, srcX, srcY, &srcRGB);
+
+					rgb.rgbBlue += static_cast<BYTE>(weight * srcRGB.rgbBlue);
+					rgb.rgbGreen += static_cast<BYTE>(weight * srcRGB.rgbGreen);
+					rgb.rgbRed += static_cast<BYTE>(weight * srcRGB.rgbRed);
+
+					weightSum += weight;
+				}
+			}
+
+			rgb.rgbBlue = static_cast<BYTE>(rgb.rgbBlue / weightSum);
+			rgb.rgbGreen = static_cast<BYTE>(rgb.rgbGreen / weightSum);
+			rgb.rgbRed = static_cast<BYTE>(rgb.rgbRed / weightSum);
+
+			SetPixel(pNewBmpFileBuf, x, y, rgb);
+		}
+	}
+
+	delete[] kernel;
+	return pNewBmpFileBuf;
+}
