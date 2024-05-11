@@ -111,10 +111,13 @@ void CimageProcessingView::OnImageprocessOpenbmpfile()
 //Save to a new BMP file
 void CimageProcessingView::OnImageprocessSavetofile()
 {
-	if(pFileBuf == NULL) return;
+	if (pFileBuf == NULL) return;
 	/**/
 	//Add your code to choose the new BMP filename
-	CString strBmpFile = "D:\\@1.bmp";
+	LPCTSTR lpszFilter = "BMP Files (*.bmp)|*.bmp||";
+	CFileDialog dlg(FALSE, _T("bmp"), NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, lpszFilter, this);
+	if (dlg.DoModal() != IDOK) return;
+	CString strBmpFile = dlg.GetPathName();
 	SaveDIB(pFileBuf, strBmpFile);
 }
 
