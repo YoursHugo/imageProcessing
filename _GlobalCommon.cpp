@@ -531,10 +531,35 @@ char* MedianFilter(char* pBmpFileBuf, int kernelSize)
 				return a.rgbBlue < b.rgbBlue || (a.rgbBlue == b.rgbBlue && a.rgbGreen < b.rgbGreen) || (a.rgbBlue == b.rgbBlue && a.rgbGreen == b.rgbGreen && a.rgbRed < b.rgbRed);
 				});
 
-			int medianIndex = neighbors.size() / 2;
+			int medianIndex = (int)neighbors.size() / 2;
 			RGBQUAD medianRGB = neighbors[medianIndex];
 			SetPixel(pNewBmpFileBuf, x, y, medianRGB);
 		}
 	}
 	return pNewBmpFileBuf;
+}
+
+char* Bilateralfilter(char* pBmpFileBuf)
+{
+	return nullptr;
+}
+
+char* Histoequalization(char* pBmpFileBuf)
+{
+	return nullptr;
+}
+
+char* Sharpengrad(char* pBmpFileBuf)
+{
+	return nullptr;
+}
+
+char* Cannyedge(char* pBmpFileBuf)
+{
+	return nullptr;
+}
+
+char* Otsusegment(char* pBmpFileBuf)
+{
+	return nullptr;
 }

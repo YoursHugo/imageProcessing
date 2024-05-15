@@ -242,24 +242,54 @@ void CimageProcessingView::OnImageprocessMedianfilter()
 //Bilateral filtering
 void CimageProcessingView::OnImageprocessBilateralfilter()
 {
+	if (pFileBuf == NULL) return;
+	char* pNewImage = Bilateralfilter(pFileBuf);
+	delete[] pFileBuf;
+	pFileBuf = pNewImage;
+	Invalidate();
+	UpdateWindow();
 }
 
 //Histogram equalization
 void CimageProcessingView::OnImageprocessHistoequalization()
 {
+	if (pFileBuf == NULL) return;
+	char* pNewImage = Histoequalization(pFileBuf);
+	delete[] pFileBuf;
+	pFileBuf = pNewImage;
+	Invalidate();
+	UpdateWindow();
 }
 
 //Sharpening by gradient
 void CimageProcessingView::OnImageprocessSharpengrad()
 {
+	if (pFileBuf == NULL) return;
+	char* pNewImage = Sharpengrad(pFileBuf);
+	delete[] pFileBuf;
+	pFileBuf = pNewImage;
+	Invalidate();
+	UpdateWindow();
 }
 
 //Cany edge detection
 void CimageProcessingView::OnImageprocessCannyedge()
 {
+	if (pFileBuf == NULL) return;
+	char* pNewImage = Cannyedge(pFileBuf);
+	delete[] pFileBuf;
+	pFileBuf = pNewImage;
+	Invalidate();
+	UpdateWindow();
 }
 
 //Otsu segmentation
 void CimageProcessingView::OnImageprocessOtsusegment()
 {
+	if (pFileBuf == NULL) return;
+	char* pNewImage = Otsusegment(pFileBuf);
+	delete[] pFileBuf;
+	pFileBuf = pNewImage;
+	Invalidate();
+	UpdateWindow();
 }

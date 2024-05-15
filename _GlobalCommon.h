@@ -23,5 +23,12 @@ void    SetPixel(char *pFileBuffer,int x,int y,RGBQUAD rgb);
 BOOL    SaveDIB(char *pFileBuffer,CString strBmpFile);
 
 char    *ImageInterpolation(char *pBmpFileBuf,int newWidth,int newHeight,int nMethod=0);
+
+double* CreateGaussianKernel(int kernelSize=5, double sigma=1.0);
 char    *GaussianSmooth(char* pBmpFileBuf, int kernelSize = 5, double sigma=1.0);
 char    *MedianFilter(char* pBmpFileBuf, int kernelSize = 3);
+char    * Bilateralfilter(char* pBmpFileBuf);
+char    *Histoequalization(char* pBmpFileBuf);
+char    *Sharpengrad(char* pBmpFileBuf);
+char    *Cannyedge(char* pBmpFileBuf);
+char    *Otsusegment(char* pBmpFileBuf);
