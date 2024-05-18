@@ -32,9 +32,9 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 	cs.style = WS_OVERLAPPED | WS_CAPTION | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU;//修改cs类型
 	cs.cx = 800;
 	cs.cy = 600;//设置窗口大小
-	cs.y = 222;
-	cs.x = 111;//设置初始位置
-	cs.lpszName = "U202111035_数字图像处理作业";
+	cs.y = 200;
+	cs.x = 100;//设置初始位置
+	cs.lpszName = "U202111035_史佳鑫_数字图像处理作业";
 	return TRUE;
 }
 

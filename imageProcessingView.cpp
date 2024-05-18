@@ -114,11 +114,11 @@ void CimageProcessingView::OnImageprocessSavetofile()
 	if (pFileBuf == NULL) return;
 	/**/
 	//Add your code to choose the new BMP filename
-	LPCTSTR lpszFilter = "BMP Files (*.bmp)|*.bmp||";
+	LPCTSTR lpszFilter = "BMP Files (*.bmp)|*.bmp||";//选择要打开文件类型
 	CFileDialog dlg(FALSE, _T("bmp"), NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, lpszFilter, this);
-	if (dlg.DoModal() != IDOK) return;
-	CString strBmpFile = dlg.GetPathName();
-	SaveDIB(pFileBuf, strBmpFile);
+	if (dlg.DoModal() != IDOK) return;//如果没有选择文件，直接返回
+	CString strBmpFile = dlg.GetPathName();//获取文件路径
+	SaveDIB(pFileBuf, strBmpFile);//保存文件
 }
 
 //Display BMP file header
