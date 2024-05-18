@@ -3,11 +3,10 @@
 #include "_GlobalCommon.h"
 #include <vector>
 #include <algorithm>
-/**
-	 功能: 从图像文件中建造DIB类
-	 参数: strBmpFile --- 需要打开的BMP文件名
-	 返回：文件缓冲区指针 (NULL表示失败)
-**/
+/*
+@brief 打开位图文件
+@param strBmpFile 位图文件路径
+*/
 char *OpenBMPfile(CString strBmpFile)
 {
 	CFile hFile;
@@ -16,21 +15,13 @@ char *OpenBMPfile(CString strBmpFile)
 		AfxMessageBox("Failed to open the BMP file");
 		return( NULL );
 	}
-	/**/
-//	if(	hFile.Seek(0L,CFile::begin) != 0L )
-//	{
-//		return( NULL );
-//	}
-	/**/
 	long lFileSize = (long)hFile.Seek(0L, CFile::end);
 	char *pFileBuf = new char [lFileSize+1];
 	hFile.Seek(0L, CFile::begin);
 	hFile.Read(pFileBuf, lFileSize);
 	hFile.Close();
-	/**/
 	BITMAPFILEHEADER *pBmpHead = (BITMAPFILEHEADER *)pFileBuf;
 	BITMAPINFOHEADER *pBmpInfo = (BITMAPINFOHEADER *)(pFileBuf + sizeof(BITMAPFILEHEADER));
-	/**/
 	if(	pBmpHead->bfType   != 0x4D42 ||		//"BM"=0x424D
 	    pBmpInfo->biSize   != 0x28   ||		// 位图信息子结构长度(等于40,即0x28)
 		pBmpInfo->biPlanes != 0x01 )		// 此域必须等于1
@@ -38,20 +29,17 @@ char *OpenBMPfile(CString strBmpFile)
 		AfxMessageBox("It isn't a valid BMP file");
 		return( NULL );
 	}
-	/**/
 	if( pBmpInfo->biCompression != BI_RGB )
 	{
 		AfxMessageBox("It is a compressed BMP file");
 		return( NULL );
 	}
-	/**/
 	if( pBmpInfo->biBitCount != 8  &&
 	    pBmpInfo->biBitCount != 24 )
 	{
 		AfxMessageBox("Only 8-bit and 24-bit BMP files are supported");
 		return( NULL );
 	}
-	/**/
 	return( pFileBuf );
 }
 
@@ -428,67 +416,66 @@ double* CreateGaussianKernel(int kernelSize, double sigma)
 	return kernel;
 }
 
-char* GaussianSmooth(char* pBmpFileBuf, int kernelSize, double sigma)
-{
-	BITMAPFILEHEADER* pFileHeader = (BITMAPFILEHEADER*)pBmpFileBuf;
-	BITMAPINFOHEADER* pDIBInfo = (BITMAPINFOHEADER*)(pBmpFileBuf + sizeof(BITMAPFILEHEADER));
-	int orgWidth = pDIBInfo->biWidth;
-	int orgHeight = pDIBInfo->biHeight;
-	int colorBits = pDIBInfo->biBitCount;
-
-	long bytesPerRow = 4 * ((orgWidth * colorBits + 31) / 32);
-	long newBmpFileSize = pFileHeader->bfOffBits + bytesPerRow * orgHeight;
-	char* pNewBmpFileBuf = new char[newBmpFileSize];
-	memcpy(pNewBmpFileBuf, pBmpFileBuf, pFileHeader->bfOffBits);
-	BITMAPFILEHEADER* pNewFileHeader = (BITMAPFILEHEADER*)pNewBmpFileBuf;
-	BITMAPINFOHEADER* pNewDIBInfo = (BITMAPINFOHEADER*)(pNewBmpFileBuf + sizeof(BITMAPFILEHEADER));
-	pNewFileHeader->bfSize = newBmpFileSize;
-	pNewDIBInfo->biWidth = orgWidth;
-	pNewDIBInfo->biHeight = orgHeight;
-	pNewDIBInfo->biSizeImage = bytesPerRow * orgHeight;
-
-	int kernelRadius = kernelSize / 2;
-	double* kernel = CreateGaussianKernel(kernelSize, sigma);
-
-	for (int y = 0; y < orgHeight; y++)
+	char* GaussianSmooth(char* pBmpFileBuf, int kernelSize, double sigma)
 	{
-		for (int x = 0; x < orgWidth; x++)
+		BITMAPFILEHEADER* pFileHeader = (BITMAPFILEHEADER*)pBmpFileBuf;
+		BITMAPINFOHEADER* pDIBInfo = (BITMAPINFOHEADER*)(pBmpFileBuf + sizeof(BITMAPFILEHEADER));
+		int orgWidth = pDIBInfo->biWidth;
+		int orgHeight = pDIBInfo->biHeight;
+		int colorBits = pDIBInfo->biBitCount;
+		long bytesPerRow = 4 * ((orgWidth * colorBits + 31) / 32);
+		long newBmpFileSize = pFileHeader->bfOffBits + bytesPerRow * orgHeight;
+		char* pNewBmpFileBuf = new char[newBmpFileSize];
+		memcpy(pNewBmpFileBuf, pBmpFileBuf, pFileHeader->bfOffBits);
+		BITMAPFILEHEADER* pNewFileHeader = (BITMAPFILEHEADER*)pNewBmpFileBuf;
+		BITMAPINFOHEADER* pNewDIBInfo = (BITMAPINFOHEADER*)(pNewBmpFileBuf + sizeof(BITMAPFILEHEADER));
+		pNewFileHeader->bfSize = newBmpFileSize;
+		pNewDIBInfo->biWidth = orgWidth;
+		pNewDIBInfo->biHeight = orgHeight;
+		pNewDIBInfo->biSizeImage = bytesPerRow * orgHeight;
+
+		int kernelRadius = kernelSize / 2;
+		double* kernel = CreateGaussianKernel(kernelSize, sigma);
+
+		for (int y = 0; y < orgHeight; y++)
 		{
-			RGBQUAD rgb = { 0, 0, 0, 0 };
-			double sum = 0.0;
-			double weightSum = 0.0;
-
-			for (int ky = -kernelRadius; ky <= kernelRadius; ky++)
+			for (int x = 0; x < orgWidth; x++)
 			{
-				for (int kx = -kernelRadius; kx <= kernelRadius; kx++)
+				RGBQUAD rgb = { 0, 0, 0, 0 };
+				double sum = 0.0;
+				double weightSum = 0.0;
+
+				for (int ky = -kernelRadius; ky <= kernelRadius; ky++)
 				{
-					int srcX = max(0, min(orgWidth - 1, x + kx));
-					int srcY = max(0, min(orgHeight - 1, y + ky));
-					int kernelIndex = (ky + kernelRadius) * kernelSize + (kx + kernelRadius);
-					double weight = kernel[kernelIndex];
+					for (int kx = -kernelRadius; kx <= kernelRadius; kx++)
+					{
+						int srcX = max(0, min(orgWidth - 1, x + kx));
+						int srcY = max(0, min(orgHeight - 1, y + ky));
+						int kernelIndex = (ky + kernelRadius) * kernelSize + (kx + kernelRadius);
+						double weight = kernel[kernelIndex];
 
-					RGBQUAD srcRGB;
-					GetPixel(pBmpFileBuf, srcX, srcY, &srcRGB);
+						RGBQUAD srcRGB;
+						GetPixel(pBmpFileBuf, srcX, srcY, &srcRGB);
 
-					rgb.rgbBlue += static_cast<BYTE>(weight * srcRGB.rgbBlue);
-					rgb.rgbGreen += static_cast<BYTE>(weight * srcRGB.rgbGreen);
-					rgb.rgbRed += static_cast<BYTE>(weight * srcRGB.rgbRed);
+						rgb.rgbBlue += static_cast<BYTE>(weight * srcRGB.rgbBlue);
+						rgb.rgbGreen += static_cast<BYTE>(weight * srcRGB.rgbGreen);
+						rgb.rgbRed += static_cast<BYTE>(weight * srcRGB.rgbRed);
 
-					weightSum += weight;
+						weightSum += weight;
+					}
 				}
+
+				rgb.rgbBlue = static_cast<BYTE>(rgb.rgbBlue / weightSum);
+				rgb.rgbGreen = static_cast<BYTE>(rgb.rgbGreen / weightSum);
+				rgb.rgbRed = static_cast<BYTE>(rgb.rgbRed / weightSum);
+
+				SetPixel(pNewBmpFileBuf, x, y, rgb);
 			}
-
-			rgb.rgbBlue = static_cast<BYTE>(rgb.rgbBlue / weightSum);
-			rgb.rgbGreen = static_cast<BYTE>(rgb.rgbGreen / weightSum);
-			rgb.rgbRed = static_cast<BYTE>(rgb.rgbRed / weightSum);
-
-			SetPixel(pNewBmpFileBuf, x, y, rgb);
 		}
-	}
 
-	delete[] kernel;
-	return pNewBmpFileBuf;
-}
+		delete[] kernel;
+		return pNewBmpFileBuf;
+	}
 
 char* MedianFilter(char* pBmpFileBuf, int kernelSize)
 {
@@ -514,7 +501,7 @@ char* MedianFilter(char* pBmpFileBuf, int kernelSize)
 	{
 		for (int x = 0; x < orgWidth; x++)
 		{
-			std::vector<RGBQUAD> neighbors;
+			std::vector <RGBQUAD> neighbors;
 			for (int ky = -kernelRadius; ky <= kernelRadius; ky++)
 			{
 				for (int kx = -kernelRadius; kx <= kernelRadius; kx++)
@@ -541,25 +528,227 @@ char* MedianFilter(char* pBmpFileBuf, int kernelSize)
 
 char* Bilateralfilter(char* pBmpFileBuf)
 {
+	BITMAPFILEHEADER* pFileHeader = (BITMAPFILEHEADER*)pBmpFileBuf;
+	BITMAPINFOHEADER* pDIBInfo = (BITMAPINFOHEADER*)(pBmpFileBuf + sizeof(BITMAPFILEHEADER));
+	int orgWidth = pDIBInfo->biWidth;
+	int orgHeight = pDIBInfo->biHeight;
+	int colorBits = pDIBInfo->biBitCount;
+	long bytesPerRow = 4 * ((orgWidth * colorBits + 31) / 32);
+	long newBmpFileSize = pFileHeader->bfOffBits + bytesPerRow * orgHeight;
+	char* pNewBmpFileBuf = new char[newBmpFileSize];
+	memcpy(pNewBmpFileBuf, pBmpFileBuf, pFileHeader->bfOffBits);
+	BITMAPFILEHEADER* pNewFileHeader = (BITMAPFILEHEADER*)pNewBmpFileBuf;
+	BITMAPINFOHEADER* pNewDIBInfo = (BITMAPINFOHEADER*)(pNewBmpFileBuf + sizeof(BITMAPFILEHEADER));
+	pNewFileHeader->bfSize = newBmpFileSize;
+	pNewDIBInfo->biWidth = orgWidth;
+	pNewDIBInfo->biHeight = orgHeight;
+	pNewDIBInfo->biSizeImage = bytesPerRow * orgHeight;
+
+
 	return nullptr;
 }
 
 char* Histoequalization(char* pBmpFileBuf)
 {
-	return nullptr;
+	BITMAPFILEHEADER* pFileHeader = (BITMAPFILEHEADER*)pBmpFileBuf;
+	BITMAPINFOHEADER* pDIBInfo = (BITMAPINFOHEADER*)(pBmpFileBuf + sizeof(BITMAPFILEHEADER));
+	int orgWidth = pDIBInfo->biWidth;
+	int orgHeight = pDIBInfo->biHeight;
+	int colorBits = pDIBInfo->biBitCount;
+
+	if (colorBits != 24 && colorBits != 32)
+	{
+		// Only support 24-bit and 32-bit BMP
+		return nullptr;
+	}
+
+	long bytesPerRow = 4 * ((orgWidth * colorBits + 31) / 32);
+	long bmpFileSize = pFileHeader->bfOffBits + bytesPerRow * orgHeight;
+	char* pNewBmpFileBuf = new char[bmpFileSize];
+	memcpy(pNewBmpFileBuf, pBmpFileBuf, bmpFileSize);
+
+	// Calculate histogram
+	int histogram[256] = { 0 };
+	for (int y = 0; y < orgHeight; y++)
+	{
+		for (int x = 0; x < orgWidth; x++)
+		{
+			RGBQUAD rgb;
+			GetPixel(pBmpFileBuf, x, y, &rgb);
+			int gray = (rgb.rgbRed + rgb.rgbGreen + rgb.rgbBlue) / 3;
+			histogram[gray]++;
+		}
+	}
+
+	// Calculate cumulative distribution function (CDF)
+	int cdf[256] = { 0 };
+	cdf[0] = histogram[0];
+	for (int i = 1; i < 256; i++)
+	{
+		cdf[i] = cdf[i - 1] + histogram[i];
+	}
+
+	// Normalize the CDF
+	int cdfMin = 0;
+	for (int i = 0; i < 256; i++)
+	{
+		if (cdf[i] != 0)
+		{
+			cdfMin = cdf[i];
+			break;
+		}
+	}
+
+	int totalPixels = orgWidth * orgHeight;
+	int lookupTable[256];
+	for (int i = 0; i < 256; i++)
+	{
+		lookupTable[i] = (cdf[i] - cdfMin) * 255 / (totalPixels - cdfMin);
+		lookupTable[i] = max(0, min(255, lookupTable[i]));
+	}
+
+	// Apply histogram equalization
+	for (int y = 0; y < orgHeight; y++)
+	{
+		for (int x = 0; x < orgWidth; x++)
+		{
+			RGBQUAD rgb;
+			GetPixel(pBmpFileBuf, x, y, &rgb);
+			int gray = (rgb.rgbRed + rgb.rgbGreen + rgb.rgbBlue) / 3;
+			int equalizedGray = lookupTable[gray];
+			rgb.rgbRed = rgb.rgbGreen = rgb.rgbBlue = equalizedGray;
+			SetPixel(pNewBmpFileBuf, x, y, rgb);
+		}
+	}
+
+	return pNewBmpFileBuf;
 }
 
+
+// Gradient sharpening function
 char* Sharpengrad(char* pBmpFileBuf)
 {
+	BITMAPFILEHEADER* pFileHeader = (BITMAPFILEHEADER*)pBmpFileBuf;
+	BITMAPINFOHEADER* pDIBInfo = (BITMAPINFOHEADER*)(pBmpFileBuf + sizeof(BITMAPFILEHEADER));
+	int orgWidth = pDIBInfo->biWidth;
+	int orgHeight = pDIBInfo->biHeight;
+	int colorBits = pDIBInfo->biBitCount;
+	long bytesPerRow = 4 * ((orgWidth * colorBits + 31) / 32);
+	long newBmpFileSize = pFileHeader->bfOffBits + bytesPerRow * orgHeight;
+	char* pNewBmpFileBuf = new char[newBmpFileSize];
+	memcpy(pNewBmpFileBuf, pBmpFileBuf, pFileHeader->bfOffBits);
+	char* pOrgBmpFileBuf = new char[newBmpFileSize];
+	memcpy(pOrgBmpFileBuf, pBmpFileBuf, newBmpFileSize);
+
+	for (int y = 1; y < orgHeight - 1; y++)
+	{
+		for (int x = 1; x < orgWidth - 1; x++)
+		{
+			RGBQUAD rgbL, rgbR, rgbU, rgbD;
+			GetPixel(pOrgBmpFileBuf, x - 1, y, &rgbL);
+			GetPixel(pOrgBmpFileBuf, x + 1, y, &rgbR);
+			GetPixel(pOrgBmpFileBuf, x, y - 1, &rgbU);
+			GetPixel(pOrgBmpFileBuf, x, y + 1, &rgbD);
+
+			RGBQUAD rgbNew;
+			rgbNew.rgbBlue = min(255, max(0, abs((int)rgbR.rgbBlue - (int)rgbL.rgbBlue) + abs((int)rgbD.rgbBlue - (int)rgbU.rgbBlue)));
+			rgbNew.rgbGreen = min(255, max(0, abs((int)rgbR.rgbGreen - (int)rgbL.rgbGreen) + abs((int)rgbD.rgbGreen - (int)rgbU.rgbGreen)));
+			rgbNew.rgbRed = min(255, max(0, abs((int)rgbR.rgbRed - (int)rgbL.rgbRed) + abs((int)rgbD.rgbRed - (int)rgbU.rgbRed)));
+			SetPixel(pNewBmpFileBuf, x, y, rgbNew);
+		}
+	}
+
+	delete[] pOrgBmpFileBuf;
+	return pNewBmpFileBuf;
+}
+
+char* Cannyedge(char* pBmpFileBuf) {
+	BITMAPFILEHEADER* pFileHeader = (BITMAPFILEHEADER*)pBmpFileBuf;
+	BITMAPINFOHEADER* pDIBInfo = (BITMAPINFOHEADER*)(pBmpFileBuf + sizeof(BITMAPFILEHEADER));
+	int orgWidth = pDIBInfo->biWidth;
+	int orgHeight = pDIBInfo->biHeight;
+	int colorBits = pDIBInfo->biBitCount;
+	long bytesPerRow = 4 * ((orgWidth * colorBits + 31) / 32);
+	long newBmpFileSize = pFileHeader->bfOffBits + bytesPerRow * orgHeight;
+	char* pNewBmpFileBuf = new char[newBmpFileSize];
+	memcpy(pNewBmpFileBuf, pBmpFileBuf, pFileHeader->bfOffBits);
+	char* pOrgBmpFileBuf = new char[newBmpFileSize];
+	memcpy(pOrgBmpFileBuf, pBmpFileBuf, newBmpFileSize);
+
 	return nullptr;
 }
 
-char* Cannyedge(char* pBmpFileBuf)
-{
-	return nullptr;
+uint8_t RGBToGrayscale(RGBQUAD color) {
+	return static_cast<uint8_t>(0.3 * color.rgbRed + 0.59 * color.rgbGreen + 0.11 * color.rgbBlue);
 }
 
-char* Otsusegment(char* pBmpFileBuf)
-{
-	return nullptr;
+char* Otsusegment(char* pBmpFileBuf){
+	BITMAPFILEHEADER* pFileHeader = (BITMAPFILEHEADER*)pBmpFileBuf;
+	BITMAPINFOHEADER* pDIBInfo = (BITMAPINFOHEADER*)(pBmpFileBuf + sizeof(BITMAPFILEHEADER));
+	int orgWidth = pDIBInfo->biWidth;
+	int orgHeight = pDIBInfo->biHeight;
+	int colorBits = pDIBInfo->biBitCount;
+	long bytesPerRow = 4 * ((orgWidth * colorBits + 31) / 32);
+	long newBmpFileSize = pFileHeader->bfOffBits + bytesPerRow * orgHeight;
+	char* pNewBmpFileBuf = new char[newBmpFileSize];
+	memcpy(pNewBmpFileBuf, pBmpFileBuf, pFileHeader->bfOffBits);
+	char* pOrgBmpFileBuf = new char[newBmpFileSize];
+	memcpy(pOrgBmpFileBuf, pBmpFileBuf, newBmpFileSize);
+	std::vector<uint8_t> grayscale(orgWidth * orgHeight);
+
+	// Convert image to grayscale
+	for (int y = 0; y < orgHeight; ++y) {
+		for (int x = 0; x < orgWidth; ++x) {
+			RGBQUAD color;
+			GetPixel(pBmpFileBuf, x, y, &color);
+			grayscale[y * orgWidth + x] = RGBToGrayscale(color);
+		}
+	}
+
+	// Calculate histogram
+	int histogram[256] = { 0 };
+	for (int i = 0; i < orgWidth * orgHeight; ++i) {
+		histogram[grayscale[i]]++;
+	}
+
+	// Compute Otsu's threshold
+	int total = orgWidth * orgHeight;
+	float sum = 0;
+	for (int t = 0; t < 256; ++t) sum += t * histogram[t];
+	float sumB = 0, wB = 0, wF = 0, varMax = 0;
+	int threshold = 0;
+
+	for (int t = 0; t < 256; ++t) {
+		wB += histogram[t];
+		if (wB == 0) continue;
+		wF = total - wB;
+		if (wF == 0) break;
+
+		sumB += t * histogram[t];
+		float mB = sumB / wB;
+		float mF = (sum - sumB) / wF;
+		float varBetween = wB * wF * (mB - mF) * (mB - mF);
+
+		if (varBetween > varMax) {
+			varMax = varBetween;
+			threshold = t;
+		}
+	}
+
+	// Apply the threshold to segment the image
+	for (int y = 0; y < orgHeight; ++y) {
+		for (int x = 0; x < orgWidth; ++x) {
+			uint8_t gray = grayscale[y * orgWidth + x];
+			RGBQUAD color = { gray, gray, gray, 0 };
+			if (gray > threshold) {
+				color.rgbBlue = color.rgbGreen = color.rgbRed = 255; // White
+			}
+			else {
+				color.rgbBlue = color.rgbGreen = color.rgbRed = 0; // Black
+			}
+			SetPixel(pNewBmpFileBuf, x, y, color);
+		}
+	}
+
+	return pNewBmpFileBuf;
 }
